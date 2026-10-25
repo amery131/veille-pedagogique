@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#123247">
+  <title>Veille pédagogique | Physique-chimie, mathématiques et enseignement scientifique</title>
+  <link rel="alternate" type="application/rss+xml" title="Veille pédagogique" href="veille.xml">
+  <style>
+    :root{color-scheme:light;--navy:#133047;--navy2:#1d4058;--teal:#097b78;--light:#edf3f5;--paper:#fff;--text:#162c3b;--muted:#55707e;--line:#d9e4e8;--yellow:#e6b45d}
+    *{box-sizing:border-box}html,body{min-height:100%;margin:0}html{font-size:14px}
+    body{font-family:Calibri,"Segoe UI",Arial,sans-serif;background:#e7eef1;color:var(--text);font-weight:400}
+    .app{width:100%;max-width:900px;min-height:100dvh;margin:0 auto;background:var(--paper);box-shadow:0 0 18px #12324713}
+    header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:white;padding:16px 16px 13px;position:relative;overflow:hidden}
+    header::after{content:"";position:absolute;right:-44px;top:-65px;width:150px;height:150px;border:26px solid #ffffff10;border-radius:50%;pointer-events:none}
+    .topline{display:flex;justify-content:space-between;gap:9px;align-items:center;position:relative;z-index:1}
+    .eyebrow{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#aedcd9;font-weight:700;margin:0 0 5px}
+    h1{font-size:21px;line-height:1.1;letter-spacing:-.35px;margin:0;font-weight:700}
+    .subtitle{font-size:11px;color:#dae8ec;margin-top:6px}
+    .counter{flex-shrink:0;border:1px solid #ffffff45;background:#ffffff16;border-radius:11px;padding:9px 8px;min-width:53px;text-align:center}
+    .counter strong{font-size:22px;line-height:1;display:block}.counter span{font-size:9px;color:#d5e9ea}
+    .ribbon{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 14px;border-bottom:1px solid var(--line);background:#f7fafb}
+    .status{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;min-width:0}
+    .dot{width:7px;height:7px;border-radius:50%;background:#18a28d;flex-shrink:0}
+    .dot.warning{background:#df9d30}.dot.error{background:#ca5851}
+    .refresh{border:1px solid #c9dadd;background:white;color:var(--navy);padding:5px 8px;border-radius:7px;font:600 11px Calibri,"Segoe UI",sans-serif;cursor:pointer;white-space:nowrap}
+    .filters{padding:10px 12px 8px;display:flex;gap:5px;overflow-x:auto;scrollbar-width:thin}
+    .filter{border:1px solid var(--line);border-radius:20px;white-space:nowrap;background:white;color:#4c6876;padding:5px 9px;font:600 11px Calibri,"Segoe UI",sans-serif;cursor:pointer}
+    .filter[aria-pressed="true"]{background:#dcefeb;color:#00655e;border-color:#96cdc6}
+    .info{padding:9px 11px;background:#fff7e9;color:#675127;margin:0 12px 10px;border:1px solid #f0d9a9;border-radius:8px;font-size:11px;line-height:1.35}
+    main{padding:0 12px 18px}.cards{display:grid;grid-template-columns:1fr;gap:8px}
+    article{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 2px 5px #1d405806}
+    .cardtop{display:flex;align-items:center;justify-content:space-between;padding:11px 11px 0;gap:8px}
+    .category{font-size:10px;background:#e5f3f1;color:#066e6c;border-radius:5px;font-weight:700;letter-spacing:.01em;padding:4px 7px}
+    .date{font-size:10px;color:var(--muted);white-space:nowrap}
+    h2{font-size:14px;line-height:1.25;margin:8px 11px 5px;font-weight:700}
+    h2 a{color:var(--navy);text-decoration:none}h2 a:hover,h2 a:focus-visible{text-decoration:underline;color:var(--teal)}
+    .source{color:#58717f;font-size:10px;padding:0 11px 7px;display:flex;align-items:center;gap:5px}
+    .summary{font-size:12px;line-height:1.35;margin:0 11px 9px;color:#354c5a;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .use{display:flex;gap:7px;background:#eef7f6;border-top:1px solid #dcebe9;padding:8px 11px;font-size:11px;line-height:1.32;color:#244c52}
+    .use strong{color:#00675e}.use .book{font-size:13px;line-height:1.1}
+    .actions{padding:9px 11px;border-top:1px solid #ecf1f2;text-align:right}
+    .actions a{font-size:11px;color:var(--teal);font-weight:700;text-decoration:none}
+    .actions a:hover{text-decoration:underline}
+    .empty{text-align:center;padding:36px 20px;color:var(--muted)}.empty strong{display:block;color:var(--navy);font-size:15px;margin:8px 0}
+    footer{display:flex;justify-content:space-between;gap:9px;align-items:center;border-top:1px solid var(--line);margin-top:12px;padding:12px 14px;background:#fafcfc;color:#647b85;font-size:10px}
+    footer a{color:var(--teal)}
+    @media(min-width:630px){.app{padding-bottom:20px}header{padding:22px 24px}h1{font-size:29px}.subtitle{font-size:13px}.ribbon{padding:10px 23px}.filters{padding:15px 24px}.info{margin:0 24px 13px}main{padding:0 24px 18px}.cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.cards article:first-child{grid-column:1/-1}h2{font-size:16px}.summary{font-size:13px}}
+    @media(prefers-reduced-motion:no-preference){button,a{transition:background .18s ease,color .18s ease}}
+    @media(prefers-color-scheme:dark){:root{color-scheme:light}} /* Lisibilité identique dans toutes les configurations de Vivaldi */
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="topline">
+      <div><p class="eyebrow">Carnet de veille scientifique</p><h1>Veille pédagogique</h1>
+        <div class="subtitle">Physique-chimie · Maths · Enseignement scientifique</div></div>
+      <div class="counter" aria-label="Nombre de ressources"><strong id="total">5</strong><span>ressources</span></div>
+    </div>
+  </header>
+  <div class="ribbon"><div class="status"><span class="dot warning" id="status-dot"></span><span id="status">Chargement de la veille…</span></div><button class="refresh" type="button" id="refresh" title="Vérifier la dernière édition">↻ Actualiser</button></div>
+  <nav class="filters" aria-label="Filtrer les actualités">
+    <button class="filter" type="button" aria-pressed="true" data-filter="Toutes">Toutes</button>
+    <button class="filter" type="button" aria-pressed="false" data-filter="Physique-chimie">Physique-chimie</button>
+    <button class="filter" type="button" aria-pressed="false" data-filter="Mathématiques">Maths</button>
+    <button class="filter" type="button" aria-pressed="false" data-filter="Pédagogie">Pédagogie</button>
+    <button class="filter" type="button" aria-pressed="false" data-filter="IA et numérique">IA</button>
+  </nav>
+  <div class="info" id="info" role="status">Aperçu de démonstration : ressources anciennes, qui ne constituent pas la veille du jour.</div>
+  <main><section class="cards" id="cards" aria-live="polite"></section></main>
+  <footer><span>Édition automatique après 19 h (Paris), sous réserve de publication</span><a href="veille.xml" id="rss">Flux RSS</a></footer>
+</div>
+<script type="application/json" id="preview-json">
+{
+  "generated_at": "2026-10-25T16:43:00+01:00",
+  "mode": "demo",
+  "window_hours": 48,
+  "message": "Aperçu initial : cinq ressources vérifiées publiées avant la fenêtre des dernières 48 h. Ce ne sont pas les cinq actualités du jour. La première exécution automatique remplacera cette démonstration.",
+  "articles": [
+    {"title":"Mieux s’exercer grâce à la classe puzzle","url":"https://www.cahiers-pedagogiques.com/mieux-sexercer-grace-a-la-classe-puzzle/","source":"Les Cahiers pédagogiques","date":"2026-10-20","category":"Physique-chimie","summary":"Deux enseignants de physique-chimie testent une organisation en classe puzzle pour travailler les méthodes de résolution. Les élèves passent du travail individuel à l’explication entre pairs, puis à une correction collective.","interest":"À adapter en 4e pour faire verbaliser le raisonnement lors d’exercices sur la vitesse ou les transformations chimiques."},
+    {"title":"L’école est un lieu d’apprentissage de la démocratie","url":"https://www.cahiers-pedagogiques.com/lecole-est-un-lieu-dapprentissage-de-la-democratie/","source":"Les Cahiers pédagogiques","date":"2026-10-22","category":"Pédagogie","summary":"La Biennale Convergence(s) met à l’honneur les démarches actives, coopératives et l’autonomie des élèves. Elle propose une réflexion sur les pratiques qui favorisent la participation et l’esprit critique.","interest":"Une piste pour mieux répartir les rôles et organiser le dialogue scientifique lors d’activités de groupe."},
+    {"title":"Pix+ Édu : un parcours pour comprendre l’IA en éducation","url":"https://www.ludomag.com/2026/10/08/pix-edu-un-nouveau-parcours-pour-accompagner-les-enseignants-dans-la-comprehension-et-lusage-de-lia/","source":"Ludomag","date":"2026-10-08","category":"IA et numérique","summary":"Le parcours Pix+ Édu consacré à l’intelligence artificielle fournit des repères aux enseignants sur le fonctionnement de ces outils et leurs usages. Il aborde aussi le cadre institutionnel de l’IA en éducation.","interest":"Pour préparer une activité de première sur la fiabilité des données, les biais et la validation des résultats."},
+    {"title":"ParaMaths : une bibliothèque gratuite de ressources de la 6e à la prépa","url":"https://www.ludomag.com/2026/10/12/paramaths-tout-le-programme-de-maths-de-la-6e-a-la-prepa-en-acces-libre/","source":"Ludomag","date":"2026-10-12","category":"Mathématiques","summary":"ParaMaths organise des ressources gratuites par niveau et par chapitre, du collège aux études supérieures. La bibliothèque vise à faciliter l’accès aux contenus mathématiques.","interest":"Pour trouver des exercices de calcul, de proportionnalité et de puissances de dix à réinvestir en physique-chimie."},
+    {"title":"Les Journées nationales de l’APMEP abordent les usages de l’IA","url":"https://www.ludomag.com/2026/10/12/a-strasbourg-les-journees-nationales-de-lapmep-font-rayonner-les-mathematiques/","source":"Ludomag","date":"2026-10-12","category":"Mathématiques","summary":"Les journées de l’APMEP à Strasbourg réunissent des enseignants autour de l’évaluation, de l’inclusion et du numérique. Plusieurs ateliers mettent en relation IA, raisonnement mathématique et pratiques de classe.","interest":"Pour nourrir le travail interdisciplinaire sur la modélisation et l’analyse critique de résultats."}
+  ]
+}
+</script>
+<script>
+(function(){
+  'use strict';
+  const cards=document.getElementById('cards'), info=document.getElementById('info'), dot=document.getElementById('status-dot'), status=document.getElementById('status'), count=document.getElementById('total');
+  const preview=JSON.parse(document.getElementById('preview-json').textContent);
+  let state=preview,filter='Toutes';
+  const safeURL=url=>{try{const u=new URL(url,location.href);return ['https:','http:'].includes(u.protocol)?u.href:null}catch{return null}};
+  const formatDate=str=>{try{let s=String(str||'').slice(0,10);return s?new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(s+'T12:00:00Z')):''}catch{return ''}};
+  function el(tag, className, text){const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node}
+  function render(){
+    const list=(state.articles||[]).filter(a=>filter==='Toutes'||a.category===filter).slice(0,5);
+    count.textContent=String((state.articles||[]).length);
+    status.textContent=(state.mode==='demo'?'Démonstration · 25 oct. 2026':state.mode==='error'?'Mise à jour indisponible':state.mode==='empty'?'Aucune nouveauté sélectionnée':'Édition du '+formatDate(state.generated_at));
+    dot.className='dot'+(['demo','empty'].includes(state.mode)?' warning':state.mode==='error'?' error':'');
+    info.hidden=!(state.message);
+    info.textContent=state.message||'';
+    cards.replaceChildren();
+    if(!list.length){const e=el('div','empty');e.append(el('strong','',filter!=='Toutes'?'Aucune ressource dans cette rubrique':'Aucune publication retenue'),el('div','',filter!=='Toutes'?'Essayez le filtre « Toutes ».':'Les sources n’ont pas fourni suffisamment de publications pertinentes et datées sur les dernières 48 heures.'));cards.append(e);return}
+    for(const a of list){
+      const art=el('article'),top=el('div','cardtop'),cat=el('span','category',a.category||'Pédagogie'),date=el('span','date',formatDate(a.date));top.append(cat,date);
+      const title=el('h2'),tlink=el('a','',a.title||'Ressource'),link=safeURL(a.url);if(link){tlink.href=link;tlink.target='_blank';tlink.rel='noopener noreferrer'}title.append(tlink);
+      const src=el('div','source',a.source||'Source non précisée'),summary=el('p','summary',a.summary||'Résumé indisponible');
+      const use=el('div','use'),book=el('span','book','▤'),para=el('span');const strong=el('strong','',"En classe : ");para.append(strong,document.createTextNode(a.interest||"À explorer selon l'objectif de la séance."));use.append(book,para);
+      const act=el('div','actions'),ext=el('a','',"Consulter la source ↗");if(link){ext.href=link;ext.target='_blank';ext.rel='noopener noreferrer'}else{ext.removeAttribute('href');ext.textContent='Lien indisponible'}act.append(ext);
+      art.append(top,title,src,summary,use,act);cards.append(art);
+    }
+  }
+  async function load(){
+    const btn=document.getElementById('refresh');btn.disabled=true;
+    try{const res=await fetch('veille.json?ts='+Date.now(),{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);
+      const data=await res.json();if(!data||!Array.isArray(data.articles)||!['automatic','demo','empty','error','manual'].includes(data.mode))throw new Error('Format inattendu');state=data;
+    }catch(e){if(location.protocol!=='file:'){state={...state,mode:state.mode==='demo'?'demo':'error',message:(state.mode==='demo'?'Aperçu de démonstration. ':'')+'La dernière édition en ligne n’a pas pu être chargée. Actualisez ultérieurement.'}}}
+    finally{btn.disabled=false;render()}
+  }
+  document.querySelectorAll('[data-filter]').forEach(btn=>btn.addEventListener('click',()=>{filter=btn.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.setAttribute('aria-pressed',String(x===btn)));render()}));
+  document.getElementById('refresh').addEventListener('click',load);
+  render();load();setInterval(load,30*60*1000);
+})();
+</script>
+</body>
+</html>
