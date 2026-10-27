@@ -27,12 +27,14 @@ from bs4 import BeautifulSoup
 ROOT = Path(__file__).resolve().parent
 PARIS = ZoneInfo("Europe/Paris")
 WINDOW_HOURS = 48
+LOOKBACK_DAYS = 7
 NOW = datetime.now(timezone.utc)
-SINCE = NOW - timedelta(hours=WINDOW_HOURS)
+FRESH_SINCE = NOW - timedelta(hours=WINDOW_HOURS)
+SINCE = NOW - timedelta(days=LOOKBACK_DAYS)
 OUTPUT_JSON = ROOT / "veille.json"
 OUTPUT_RSS = ROOT / "veille.xml"
 USER_AGENT = "VeillePedagogiqueVivaldi/1.0 (agrégateur de flux publics)"
-MAX_PER_SOURCE = 3
+MAX_PER_SOURCE = 2
 
 FEEDS = [
     ("Édubase · physique-chimie", "https://edubase.eduscol.education.fr/rss/rss.xml?q=&discipline%5B%5D=Physique+%2F+Chimie"),
@@ -97,11 +99,13 @@ def score_for(item):
     score += sum(5 for term in ("physique", "chimie", "mathématique", "enseignement scientifique", "didactique", "séance", "scénario pédagogique", "modélisation") if term in title)
     score += sum(2 for term in ("tutorat", "esprit critique", "démarche", "investigation", "classe puzzle", "expérimentation", "biais", "méthode scientifique", "données") if term in full)
     score -= sum(10 for term in EXCLUDE_TERMS if term in full)
+    score -= sum(7 for term in ("festival", "inscrits", "événement", "inscription", "rétro", "partenariat") if term in title)
+    score += sum(7 for term in ("physique-chimie", "enseignement scientifique", "sciences physiques", "sciences expérimentales") if term in title)
     if item["source"].startswith("Édubase"):
         score += 5
-    # Un bonus mesuré pour la fraîcheur : les 48 h restent une condition impérative.
+    # La fraîcheur prime, mais une ressource plus ancienne peut compléter les cinq titres.
     age_hours = max(0, (NOW - item["published_utc"]).total_seconds() / 3600)
-    score += 2 if age_hours < 24 else 0
+    score += 4 if age_hours < 48 else 0
     return score
 
 
@@ -142,19 +146,95 @@ def fallback_summary(excerpt, title):
     return part
 
 
-def teaching_interest(category, title):
-    t = title.lower()
-    if "évaluation" in t or "erreur" in t:
-        return "Pour enrichir la correction, l'évaluation formative et l'analyse des erreurs des élèves."
-    if "ia" in t or "intelligence artificielle" in t or "données" in t:
-        return "Pour préparer une activité d'esprit critique sur les données, les biais et les modèles en enseignement scientifique."
-    if "Physique-chimie" == category:
-        return "À examiner pour construire ou adapter une activité expérimentale de physique-chimie au collège."
-    if "Mathématiques" == category:
-        return "Pour renforcer les liens entre calcul, traitement des données et raisonnement en sciences."
-    if "IA et numérique" == category:
-        return "Pour identifier un usage raisonné du numérique, à vérifier avant un emploi en classe."
-    return "Pour nourrir la préparation de séances différenciées et la réflexion sur l'apprentissage des élèves."
+# Ces activités sont des TRANSPOSITIONS proposées par le programme : elles ne sont
+# pas présentées comme des séquences fournies par la source RSS.
+SCENARIOS = {
+    "cooperation": (
+        ("4e", "35 min", "Faire expliquer une méthode par les pairs", "Groupes experts : distance, durée et conversion d’unités. Reformez des équipes mixtes pour résoudre un problème de vitesse.", "Une résolution justifiée et une grille de vérification mutuelle."),
+        ("Première", "45 min", "Argumenter à partir de preuves", "Trois équipes confrontent des documents sur la nucléosynthèse, puis produisent une synthèse « trois preuves et une limite ».", "Une conclusion collective distinguant preuve et interprétation.")
+    ),
+    "ia": (
+        ("4e", "25 min", "Contrôler une donnée avant de conclure", "À partir d’un jeu de distances et durées, repérer deux mesures douteuses puis discuter l’effet sur la vitesse moyenne calculée.", "Deux critères pour accepter une mesure."),
+        ("Première", "45 min", "Identifier les limites d’un modèle", "Comparer un petit jeu de données et des valeurs issues d’un modèle ; relever les écarts et discuter les biais possibles.", "Une validation argumentée : domaine, écart et limite.")
+    ),
+    "inclusion": (
+        ("5e", "30 min", "Différencier une démarche expérimentale", "Sur la reconnaissance de l’eau, proposer une consigne courte, un schéma légendé et des rôles tournants au laboratoire.", "Une observation et une conclusion formulées sans confondre les deux."),
+        ("Première", "40 min", "Rendre l’argumentation accessible", "Faire étudier deux documents sur l’origine des éléments chimiques avec aides graduées et rôles de lecteur, vérificateur et rapporteur.", "Une justification commune et un retour individuel.")
+    ),
+    "assessment": (
+        ("4e", "20 min", "Diagnostiquer les erreurs sur la vitesse", "Proposer trois réponses d’élèves, dont une avec une conversion erronée ; chacun choisit puis explique la correction.", "Un court bilan : erreur repérée, règle appliquée."),
+        ("Première", "25 min", "Évaluer une interprétation scientifique", "Comparer deux conclusions contradictoires tirées d’un graphique de spectre ou d’énergie, puis décider laquelle les données soutiennent.", "Une justification écrite avec citation des données.")
+    ),
+    "astronomy": (
+        ("5e", "35 min", "Lire des distances astronomiques", "Mission Cosmos : écrire 40 000 000 000 000 km en puissance de dix et comparer cette distance à celle des planètes et étoiles proches.", "Une comparaison argumentée utilisant l’ordre de grandeur."),
+        ("Première", "45 min", "Relier observations et histoire de la matière", "Comparer des documents sur les abondances d’éléments et la nucléosynthèse pour expliquer l’origine de certains noyaux.", "Une frise scientifique avec trois preuves et une limite.")
+    ),
+    "matter": (
+        ("5e", "35 min", "Distinguer dissolution et disparition", "Comparer eau, sel et sable dans deux béchers ; prévoir, observer et discuter ce qui reste présent après agitation.", "Schéma avant/après et conclusion sur la conservation de la matière."),
+        ("Première", "45 min", "Relier modèle microscopique et matière", "Étudier un document sur les structures cristallines et confronter deux modèles d’organisation des entités.", "Un schéma légendé et un argument sur les limites du modèle.")
+    ),
+    "energy": (
+        ("4e", "30 min", "Construire un bilan énergétique", "À partir d’une lampe, repérer le transfert d’énergie, puis comparer une estimation et une mesure simple.", "Un diagramme d’énergie et une phrase de bilan."),
+        ("Première", "45 min", "Exploiter des données sur l’énergie solaire", "Étudier un graphique d’irradiance ou un bilan radiatif et expliquer un écart entre deux situations.", "Un raisonnement chiffré avec unités et incertitude discutée.")
+    ),
+    "math": (
+        ("5e", "25 min", "Mobiliser les puissances de dix", "Classer des distances de la Mission Cosmos en écriture scientifique, puis justifier un classement par ordre de grandeur.", "Une conversion commentée et un classement vérifié."),
+        ("Première", "40 min", "Interpréter un graphique scientifique", "Comparer deux séries de données et leurs représentations graphiques ; repérer ce que l’échelle change à l’interprétation.", "Une interprétation argumentée avec une limite.")
+    ),
+    "sound": (
+        ("4e", "30 min", "Mesurer une fréquence", "Comparer deux sons enregistrés, lire une période sur un oscillogramme puis calculer la fréquence.", "Un calcul vérifié avec unités et interprétation."),
+        ("Première", "45 min", "Relier son et musique", "Comparer des spectres de deux instruments jouant une même note, puis discuter la fréquence fondamentale et le timbre.", "Une conclusion fondée sur deux indices graphiques.")
+    ),
+    "default": (
+        ("5e", "20 min", "Faire une place au doute scientifique", "À partir d’une affirmation sur l’eau, distinguer observation, hypothèse et preuve puis proposer un test témoin.", "Une question testable et une conclusion prudente."),
+        ("Première", "30 min", "Interroger la fiabilité d’un document", "Étudier une affirmation scientifique et deux sources ; relever les données vérifiables, les inférences et ce qui manque.", "Une synthèse « deux preuves et une limite »." )
+    )
+}
+
+def teaching_theme(title, excerpt):
+    # Le titre détermine en priorité le domaine. Les mots-clés trop génériques
+    # contenus dans l'extrait ne doivent pas transformer tout article en "coopération".
+    head = title.casefold()
+    priority = [
+        ("inclusion", r"ulis|différenci|inclusi|\bdys\b|handicap"),
+        ("cooperation", r"classe puzzle|coopér|collabor|travail en groupe"),
+        ("assessment", r"évalua|remédi|autoévalua"),
+        ("astronomy", r"astronom|cosmos|univers|étoile|galaxi|nucléosynth"),
+        ("matter", r"physique.chimie|chimie|dissol|dissou|solubil|molécul|cristal|atome"),
+        ("energy", r"énergie|climat|électri|thermi|rayonnement"),
+        ("sound", r"acoustique|musique|fréquence|sonore"),
+        ("math", r"mathém|maths|statisti|proportion|calcul|géométrie|graphi"),
+        ("ia", r"intelligence artificielle|\bia\b|algorith|donn[ée]|biais|modèle|numérique"),
+        ("cooperation", r"coopér|collabor|collectif|classe puzzle|travail en groupe|équipe|ensemble")
+    ]
+    for name, pattern in priority:
+        if re.search(pattern, head):
+            return name
+    t = (title + " " + excerpt[:380]).casefold()
+    patterns = [
+        ("cooperation", r"coopér|collabor|collectif|classe puzzle|travail en groupe|équipe|ensemble"),
+        ("inclusion", r"ulis|différenci|inclusi|dys|handicap|besoins éducatifs"),
+        ("assessment", r"évalua|autoévalua|feedback|remédi|erreur|quiz|qcm"),
+        ("ia", r"intelligence artificielle|\bia\b|algorith|donn[ée]|biais|modélis|esprit critique|fiabilit"),
+        ("astronomy", r"astronom|cosmos|univers|étoile|planète|solaire|galaxi|nucléosynth"),
+        ("matter", r"chimie|matière|dissol|dissou|solubil|molécul|atome|cristal|substance|réaction chimique"),
+        ("energy", r"énergie|électri|climat|thermi|rayonnement|renouvelable"),
+        ("sound", r"acoustique|musique|fréquence|sonore|spectre"),
+        ("math", r"mathém|maths|statisti|proportion|mesure|calcul|géométrie|graphi|puissance de dix")
+    ]
+    for name, pattern in patterns:
+        if re.search(pattern, t):
+            return name
+    return "default"
+
+def teaching_ideas(item):
+    theme = teaching_theme(item["title"], item.get("excerpt", ""))
+    labels = {"cooperation":"Coopération", "inclusion":"Différenciation", "assessment":"Évaluation", "ia":"Données et esprit critique", "astronomy":"Univers", "matter":"Matière", "energy":"Énergie", "sound":"Son", "math":"Outils mathématiques", "default":"Démarche scientifique"}
+    a, b = SCENARIOS[theme]
+    def to_dict(row):
+        level, duration, objective, activity, trace = row
+        return {"level":level, "duration":duration, "objective":objective, "activity":activity, "trace":trace}
+    return labels[theme], {"college":to_dict(a), "premiere":to_dict(b)}
 
 
 def pick_ranked(items, limit=5):
@@ -234,11 +314,16 @@ def ai_selection(candidates):
     return None
 
 
-def to_output(source, summary, interest):
+def to_output(source, summary, interest=""):
+    label, applications = teaching_ideas(source)
+    published = source["published_utc"]
+    fresh = published >= FRESH_SINCE
     return {
         "title": source["title"], "url": source["url"], "source": source["source"],
-        "date": source["published_utc"].astimezone(PARIS).date().isoformat(),
-        "category": source["category"], "summary": summary, "interest": interest
+        "date": published.astimezone(PARIS).date().isoformat(),
+        "category": source["category"], "summary": summary,
+        "interest": interest or f"Deux idées d’activités proposées autour du thème « {label.lower()} ».",
+        "theme": label, "fresh": fresh, "applications": applications
     }
 
 
@@ -266,9 +351,50 @@ def write_rss(data):
     ET.ElementTree(rss).write(OUTPUT_RSS, encoding="utf-8", xml_declaration=True)
 
 
+def previous_candidates():
+    """Relit l'édition en ligne : un workflow GitHub ne conserve pas ses fichiers temporaires."""
+    old = None
+    site_url = os.getenv("SITE_URL", "").strip()
+    if site_url.startswith("https://"):
+        try:
+            published = requests.get(site_url.rstrip("/") + "/veille.json", timeout=(5, 12),
+                                     headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
+            published.raise_for_status()
+            old = published.json()
+            print("[OK] Édition publiée précédente récupérée pour assurer la continuité.")
+        except (requests.RequestException, ValueError) as e:
+            print(f"[INFO] Édition précédente en ligne indisponible : {str(e)[:120]}")
+    if old is None:
+        try:
+            old = json.loads(OUTPUT_JSON.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            return []
+    if not isinstance(old, dict):
+        return []
+    prior = []
+    for a in old.get("articles", []):
+        try:
+            dt = datetime.fromisoformat(a["date"]).replace(tzinfo=PARIS).astimezone(timezone.utc)
+            if dt < SINCE or dt > NOW:
+                continue
+            url = normalize_url(a.get("url"))
+            if not url:
+                continue
+            item = {"title":a["title"], "url":url, "source":a.get("source", "Source conservée"),
+                    "excerpt":a.get("summary", ""), "published_utc":dt,
+                    "category":a.get("category", "Pédagogie"),
+                    "prior_summary":a.get("summary", "")}
+            item["score"] = score_for(item)
+            if item["score"] >= 5:
+                prior.append(item)
+        except (KeyError, ValueError, TypeError):
+            continue
+    return prior
+
+
 def main():
-    print(f"Veille du {NOW.astimezone(PARIS):%Y-%m-%d %H:%M %Z}. Fenêtre : {WINDOW_HOURS} h.")
-    articles, errors = [], []
+    print(f"Veille du {NOW.astimezone(PARIS):%Y-%m-%d %H:%M %Z}. Nouveautés : {WINDOW_HOURS} h ; complément : {LOOKBACK_DAYS} jours.")
+    articles, errors = previous_candidates(), []
     with ThreadPoolExecutor(max_workers=7) as pool:
         jobs = {pool.submit(fetch_feed, feed): feed[0] for feed in FEEDS}
         for future in as_completed(jobs):
@@ -276,39 +402,46 @@ def main():
             try:
                 found = future.result()
                 articles.extend(found)
-                print(f"[OK] {label} : {len(found)} articles récents retenus")
+                recent = sum(1 for x in found if x["published_utc"] >= FRESH_SINCE)
+                print(f"[OK] {label} : {recent} article(s) sous 48 h, {len(found)} sur 7 jours")
             except Exception as e:
                 errors.append(label)
-                print(f"[ATTENTION] {label} inaccessible : {str(e)[:200]}")
+                print(f"[ATTENTION] {label} inaccessible : {str(e)[:220]}")
     unique = {}
     for a in articles:
         key = a["url"]
-        if key not in unique or a["score"] > unique[key]["score"]:
+        if key not in unique or (not a.get("prior_summary") and unique[key].get("prior_summary")) or a["score"] > unique[key]["score"]:
             unique[key] = a
-    candidates = sorted(unique.values(), key=lambda a:(a["score"],a["published_utc"]), reverse=True)
-    assisted = ai_selection(candidates)
+    fresh = sorted((x for x in unique.values() if x["published_utc"] >= FRESH_SINCE), key=lambda x:(x["score"],x["published_utc"]), reverse=True)
+    older = sorted((x for x in unique.values() if x["published_utc"] < FRESH_SINCE), key=lambda x:(x["score"],x["published_utc"]), reverse=True)
+    # Deux temps : nouveautés prioritaires, puis articles complémentaires si moins de cinq.
+    candidates = fresh + older
+    assisted = ai_selection(candidates) if os.getenv("OPENAI_API_KEY") else None
     if assisted:
-        chosen = [to_output(a, summ, interest) for a, summ, interest in assisted]
-        mode, how = "automatic", "Sélection et résumés assistés par IA à partir d'extraits RSS, avec liens vers les sources."
+        selected = [(a, summary) for a, summary, _ in assisted]
+        mode_description = "Résumés assistés par IA à partir d’extraits RSS ; activités proposées séparément."
     else:
-        chosen = [to_output(a, fallback_summary(a["excerpt"], a["title"]), teaching_interest(a["category"], a["title"])) for a in pick_ranked(candidates)]
-        mode, how = "automatic", "Sélection automatique à partir de flux RSS : les résumés utilisent les extraits publiés par les sources et les pistes de cours sont indicatives."
-    message = how
+        selected = [(a, a.get("prior_summary") or fallback_summary(a["excerpt"], a["title"])) for a in pick_ranked(candidates)]
+        mode_description = "Résumés issus des extraits RSS ; idées de séances proposées à adapter."
+    chosen = [to_output(a, summary) for a, summary in selected]
+    recent_count = sum(1 for a in chosen if a["fresh"])
+    message = (f"{recent_count} publication(s) des dernières 48 h ; "
+               f"{len(chosen)-recent_count} ressource(s) complémentaire(s) des 7 derniers jours. "
+               + mode_description)
+    if errors:
+        message += f" {len(errors)} flux momentanément inaccessible(s)."
     if not chosen:
-        mode = "error" if len(errors)==len(FEEDS) else "empty"
-        message = ("Impossible de lire les flux aujourd'hui. Aucune actualité n'est fabriquée." if mode=="error" else
-                   "Aucune ressource suffisamment pertinente, datée et publiée dans les dernières 48 heures n'a été retenue aujourd'hui.")
-    elif errors:
-        message += f" {len(errors)} source(s) momentanément inaccessible(s)."
-    if len(chosen) < 5 and chosen:
-        message += f" Seulement {len(chosen)} ressource(s) retenue(s), plutôt que d'ajouter des articles anciens."
+        message = "Aucun article daté et suffisamment pertinent sur sept jours. Les ressources institutionnelles restent disponibles ci-dessous."
     data = {
         "generated_at": NOW.astimezone(PARIS).isoformat(timespec="minutes"),
-        "mode": mode, "window_hours": WINDOW_HOURS, "message": message, "articles": chosen
+        "mode": "automatic" if chosen else ("error" if len(errors) == len(FEEDS) else "empty"),
+        "window_hours": WINDOW_HOURS, "lookback_days": LOOKBACK_DAYS,
+        "fresh_count": recent_count, "source_errors": errors,
+        "message": message, "articles": chosen
     }
     OUTPUT_JSON.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     write_rss(data)
-    print(f"[TERMINÉ] {len(chosen)} ressource(s) écrite(s) dans veille.json et veille.xml")
+    print(f"[TERMINÉ] {len(chosen)} ressource(s) écrite(s) ; dont {recent_count} sous 48 h")
 
 
 if __name__ == "__main__":
